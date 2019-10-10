@@ -1,0 +1,153 @@
+# coding=utf-8
+from pykeyboard import PyKeyboard
+from pymouse import PyMouse
+import time
+import pyHook
+import pythoncom
+import xlrd
+import xlwt
+import  pyperclip
+from pynput import mouse,keyboard
+import threading
+import sys
+from openpyxl import Workbook,load_workbook
+import xml.dom.minidom
+import re
+import codecs
+import random
+def copy():
+
+    k.press_key(k.control_l_key)
+    k.tap_key("C")
+    k.release_key(k.control_l_key)
+
+def getCopy(maxTime=3):
+    #maxTime = 3  # 3秒复制 调用copy() 不管结果对错
+    while (maxTime > 0):
+        maxTime = maxTime - 0.5
+        time.sleep(0.5)
+        # print('doing')
+        copy()
+
+    result = pyperclip.paste()
+    return result
+
+def replaceXmlEncoding(filepath):
+    try:
+        f = open(filepath, mode='r')
+        content = f.read()#文本方式读入
+        content = re.sub("GB2312", "UTF-8", content)#替换encoding头
+        f.close()
+        f = open(filepath, 'w')#写入
+        f.write(content)
+        f.close()
+        f = codecs.open(filepath, 'rb', 'mbcs')#二进制方式读入
+        text = f.read().encode("utf-8")#使用utf-8方式编码
+        f.close
+        f = open(filepath, 'wb')#二进制方式写入
+        f.write(text)
+        f.close()
+    except:
+        return
+
+
+def getXMLDic(url):
+    dic={}
+    dom=xml.dom.minidom.parse(url)
+    root = dom.documentElement
+    for node in root.childNodes[1].childNodes:
+        if(node.nodeName=='单位工程'):
+            for child in node.childNodes:
+                if(child.nodeName=='专业工程'):
+                    for c in child.childNodes[1].childNodes:
+                        for end in c.childNodes:
+
+                            if(end.nodeName=='清单'):
+                                attrs=end._attrs
+
+                                value= attrs['预算价']
+                                key=attrs['项目特征']
+                                # if('胶片灯' in key._value):
+                                #     print(1)
+                                dic[key._value]=value._value
+    return dic
+
+
+
+def tapkey(key,count=1):
+    for i in range(0,count):
+        k.tap_key(key)
+        time.sleep(0.2)
+
+def Do():
+    global start
+    try:
+        if start==True:
+            #主代码---------------
+            maxTime = 1#3秒复制 调用copy() 不管结果对错
+
+
+            name=getCopy(maxTime)
+            name=str(name).replace('\r\n',' ')
+            k.type_string('6')
+            value=dic[name]
+            tapkey(k.enter_key,4)
+            tapkey(k.down_key)
+
+
+            minus=getCopy(maxTime)
+            tapkey(k.down_key)
+            calc=float(value)-float(minus)+random.randrange(5,10)
+            if(calc<0):
+                calc=random.randint(1,10)
+            result=str(calc)
+            int_result=result.split('.')[0]
+            k.type_string(int_result)
+            tapkey(k.enter_key)
+            start=False
+    except:
+        start=False
+#我的代码
+def onpressed(Key):
+    while True:
+        #print(Key)
+        if (Key==keyboard.Key.caps_lock):#开始
+            global start
+            start=True
+            print('go')
+        if (Key==keyboard.Key.f3):#结束
+            sys.exit()
+
+
+        return True
+
+
+
+
+def main():
+    while True:
+        #主程序在这
+        Do()
+
+
+
+if __name__ == '__main__':
+    k = PyKeyboard()
+    m = PyMouse()
+    start=False
+    url = r"C:\Users\Administrator\Desktop\Temp\杭州市源清中学教育综合楼项目(版本号：1).xml"#to do-------------
+    replaceXmlEncoding(url)
+
+    dic=getXMLDic(url)
+
+    threads = []
+    t2 = threading.Thread(target=main, args=())
+    threads.append(t2)
+    for t in threads:
+        t.setDaemon(True)
+        t.start()
+    print('读取完成 ')
+    print(dic)
+
+    with keyboard.Listener(on_press=onpressed) as listener:
+        listener.join()
