@@ -199,4 +199,3 @@ if __name__ == '__main__':
     print('go')
     with keyboard.Listener(on_press=onpressed) as listener:
         listener.join()
- 
